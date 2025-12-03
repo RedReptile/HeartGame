@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import requests
 import mysql.connector
+from typing import List, Dict, Any
 
 #Router for game-related endpoints
 router = APIRouter(tags=["game"])
@@ -90,6 +91,62 @@ def save_score(score_data: ScoreRequest):
 
     finally:
         # --- Always close database resources ---
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+# ------------------ LEADERBOARD ROUTE ------------------
+@router.get("/leaderboard")
+def get_leaderboard(limit: int = 25):
+    """
+    Returns a leaderboard containing each user's best score.
+    """
+    conn = None
+    cursor = None
+
+    if limit <= 0:
+        limit = 25
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            """
+            SELECT 
+                u.id AS user_id,
+                u.username,
+                COALESCE(MAX(s.score), 0) AS best_score,
+                COUNT(s.score) AS attempts
+            FROM users u
+            LEFT JOIN scores s ON s.user_id = u.id
+            GROUP BY u.id, u.username
+            ORDER BY best_score DESC, attempts DESC, u.username ASC
+            LIMIT %s
+            """,
+            (limit,)
+        )
+
+        rows = cursor.fetchall()
+        leaderboard: List[Dict[str, Any]] = [
+            {
+                "user_id": row["user_id"],
+                "username": row["username"],
+                "best_score": int(row["best_score"] or 0),
+                "attempts": int(row["attempts"] or 0),
+            }
+            for row in rows
+        ]
+
+        return {"leaderboard": leaderboard}
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to load leaderboard: {str(exc)}"
+        )
+    finally:
         if cursor:
             cursor.close()
         if conn:

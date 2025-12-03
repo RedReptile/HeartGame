@@ -1,5 +1,6 @@
 // Import React hooks and styles
 import React, { useState } from 'react';
+import Cookies from 'js-cookie';
 import './Auth.css';
 
 // Login component
@@ -46,8 +47,11 @@ export default function Login({ onLoginSuccess, switchToSignup }) {
       if (response.ok) {
         // Store user_id in localStorage
         if (data.user_id) {
+          const normalizedUsername = username.trim();
           localStorage.setItem('user_id', data.user_id.toString());
-          localStorage.setItem('username', username.trim());
+          localStorage.setItem('username', normalizedUsername);
+          Cookies.set('user_id', data.user_id.toString(), { expires: 7 });
+          Cookies.set('username', normalizedUsername, { expires: 7 });
         }
         
         setMessage('Login successful! Redirecting...');

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
+import Cookies from "js-cookie";
 import Game from "./componets/Game";
 import Login from "./componets/Login";
 import Signup from "./componets/Signup";
-import "./App.css";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -11,7 +11,7 @@ function App() {
 
   // Check if user is already logged in on component mount
   useEffect(() => {
-    const userId = localStorage.getItem('user_id');
+    const userId = localStorage.getItem('user_id') || Cookies.get('user_id');
     if (userId) {
       setIsAuthenticated(true);
     }
@@ -27,6 +27,8 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem('user_id');
     localStorage.removeItem('username');
+    Cookies.remove('user_id');
+    Cookies.remove('username');
     setIsAuthenticated(false);
     setShowSignup(false);
   };
@@ -44,23 +46,15 @@ function App() {
   // Show loading state while checking authentication
   if (isLoading) {
     return (
-      <div className="App">
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          height: '100vh',
-          background: '#f5f7fb'
-        }}>
-          <div>Loading...</div>
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-white text-sm text-neutral-500">
+        Loading...
       </div>
     );
   }
 
   // Show game if authenticated, otherwise show login/signup
   return (
-    <div className="App">
+    <div className="min-h-screen bg-white text-neutral-900">
       {isAuthenticated ? (
         <Game onLogout={handleLogout} />
       ) : showSignup ? (
